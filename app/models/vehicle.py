@@ -12,6 +12,7 @@ class Vehicle(Base):
     year = Column(Integer, nullable=False)
 
     telemetry_data = relationship("Telemetry", back_populates="vehicle")
+    alerts = relationship("Alert", back_populates="vehicle", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Vehicle(vin='{self.vin}', model='{self.model}')>"
