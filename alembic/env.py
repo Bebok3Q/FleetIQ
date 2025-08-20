@@ -1,31 +1,43 @@
+# -*- coding: utf-8 -*-
 from logging.config import fileConfig
+import os
+import sys
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
+from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-from app.models.vehicle import Base
+# Ensure project root is first on sys.path (so our `app` package is imported, not any site-packages)
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# Import Base and model modules so tables are registered on metadata
+from app.models import Base  # Base = declarative_base()
+import app.models.vehicle  # noqa: F401
+import app.models.telemetry  # noqa: F401
+import app.models.alert  # noqa: F401
+
+# Alembic Config
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# Configure logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = Base.metadata
+# Configure DB URL for Alembic from env (fallback to POSTGRES_* like the app)
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    postgres_user = os.getenv("POSTGRES_USER", "postgres")
+    postgres_password = os.getenv("POSTGRES_PASSWORD", "postgres")
+    postgres_db = os.getenv("POSTGRES_DB", "postgres")
+    postgres_host = os.getenv("POSTGRES_HOST", "localhost")
+    postgres_port = os.getenv("POSTGRES_PORT", "5432")
+    database_url = f"postgresql://{postgres_user}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db}"
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+config.set_main_option("sqlalchemy.url", database_url)
+
+# Metadata for autogenerate
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
