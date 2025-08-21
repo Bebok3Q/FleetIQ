@@ -8,6 +8,8 @@ from app.utils.db.get_db import get_db
 from app.models.vehicle import Vehicle
 from app.schemas.vehicle_schema import VehicleCreate, VehicleRead
 from app.schemas.telemetry_schema import TelemetryCreate, TelemetryRead
+from app.schemas.alert_schema import AlertRead
+from app.models.alert import Alert
 
 router = APIRouter()
 
@@ -34,3 +36,8 @@ def get_vehicle(id: int, db: Session = Depends(get_db)):
 def get_telemetry(id: int, db: Session = Depends(get_db)):
     telemetry_records = db.query(Telemetry).filter(Telemetry.vehicle_id == id).all()
     return telemetry_records
+
+@router.get("/{id}/alerts", response_model=List[AlertRead])
+def get_alerts(id: int, db: Session = Depends(get_db)):
+    alerts = db.query(Alert).filter(Alert.vehicle_id == id).all()
+    return alerts
