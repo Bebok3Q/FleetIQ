@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
 from app.schemas.telemetry_schema import TelemetryCreate
 from app.models.alert import Alert, AlertTypeEnum, SeverityEnum
+from app.utils.logger import log_alert_created, log_alert_resolved, log_with_severity, log_alert_escalated
+
+
 
 
 def _severity_rank(severity: SeverityEnum) -> int:
@@ -49,7 +52,11 @@ def check_alerts(vehicle_id: int, telemetry: TelemetryCreate | dict, db: Session
         if existing is not None:
             # Eskalacja severity tylko w górę
             if _severity_rank(severity) > _severity_rank(existing.severity):
+                old_severity = existing.severity
                 existing.severity = severity
+
+                log_message = f"Vehicle {vehicle_id} alert escalated: {old_severity} -> {existing.severity} ({message})"
+                log_alert_escalated(existing.severity, log_message)
             continue
 
         # Utwórz nowy alert, nie dodawaj do sesji tutaj (caller zarządza transakcją)
@@ -61,15 +68,20 @@ def check_alerts(vehicle_id: int, telemetry: TelemetryCreate | dict, db: Session
                 message=message,
             )
         )
+        log_message = f"Vehicle {vehicle_id} {message}"
+        log_alert_created(vehicle_id, message, severity)
 
     return new_alerts
 
 
 def resolve_alert(alert_id: int, db: Session) -> Alert:
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
+
     if alert is None:
         raise ValueError("Alert not found")
     if alert.resolved:
         return alert
     alert.resolved = True
+    log_message = f"Alert resolved: id={alert_id}"
+    log_alert_resolved(alert.vehicle_id, alert_id, alert.message)
     return alert
