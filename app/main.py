@@ -9,7 +9,7 @@ app = FastAPI(title="FleetIQ API", version="0.1")
 # Dodaj middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001"],  # Frontend URL
+    allow_origins=["http://localhost:3000"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
